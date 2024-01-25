@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# This script gives information about the school file
+# if the file exists print: 
+#       school file exists
+#   if the file is empty: school file is empty
+#   if the file is not empty: school file is not empty
+#   if the file is a regular file: school is a regular file
+#   if the file is not a regular file: (nothing)
+# if the file does not exist: school file does not exist
+
+file="school"
+if [ -e "$file" ]
+then
+    echo "school file exists"
+    if [ ! -s "$file" ] # space needed after not(!) to inverse the boolean result
+    then
+        echo "school file is empty"
+    fi
+    if [ -s "$file" ]   # the option s checks is true if file size is non-zero
+    then
+        echo "school file is not empty"
+    fi
+    if [ -f "$file" ]
+    then
+        echo "school is a regular file"
+    fi
+else
+    echo "school file does not exist"
+fi
