@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+foo()
+{
+	awk '{print $1}'
+}
+foo
