@@ -1,13 +1,15 @@
 #!/bin/bash
 
-# Get all active network interfaces
-interfaces=$(ip -o link show | awk -F': ' '{print $2}' | grep -v 'lo')
+# Get the list of network interfaces
+interfaces=$(ifconfig | grep -E '^[a-zA-Z0-9]')
 
-# Display IPv4 IPs for each interface
-for interface in $interfaces; do
-    ipv4=$(ip -o -4 addr show $interface | awk '{print $4}' | cut -d'/' -f1)
+# Loop through each interface and extract IPv4 addresses
+echo "Active IPv4 addresses:"
+while read -r line; do
+    interface=$(echo "$line" | awk '{print $1}')
+    ipv4=$(echo "$line" | grep -oP 'inet\s+\K[\d.]+')
     if [ -n "$ipv4" ]; then
-        echo $ipv4
+        echo "$interface: $ipv4"
     fi
-done
+done <<< "$interfaces"
 
