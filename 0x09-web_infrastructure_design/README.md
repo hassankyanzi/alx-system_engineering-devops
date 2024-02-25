@@ -12,6 +12,6 @@
 
 ---
 ### Authors
-Kyanzi Hassan Musisi
-Henok Estifanos
-Usman Abdulhamid
+* Kyanzi Hassan Musisi
+* Henok Estifanos
+* Usman Abdulhamid
