@@ -1,11 +1,43 @@
-#Install flask / Version must be 2.1.0
-exec { 'Install_flask':
-  command => '/usr/bin/pip3 install Flask==2.1.0',
-   unless => '/usr/bin/pip3 show Flask | grep -q "Version: 2.1.0"',
+# Define package names and versions
+$flask_version = '2.1.0'
+$werkzeug_version = '2.1.1'
+
+# Install Flask
+package { 'python3-pip':
+  ensure   => installed,
 }
 
-exec { 'install_werkzeug':
-  command => '/usr/bin/pip3 install Werkzeug==2.1.1',
-  unless => '/usr/bin/pip3 show Werkzeug | grep -q "Version: 2.1.1"',
+package { 'python3-dev':
+  ensure   => installed,
+}
 
+package { 'build-essential':
+  ensure   => installed,
+}
+
+package { 'libssl-dev':
+  ensure   => installed,
+}
+
+package { 'libffi-dev':
+  ensure   => installed,
+}
+
+package { 'python3-setuptools':
+  ensure   => installed,
+}
+
+package { 'python3-wheel':
+  ensure   => installed,
+}
+
+package { 'python3-flask':
+  ensure   => $flask_version,
+  provider => 'pip3',
+}
+
+# Install Werkzeug
+package { 'python3-werkzeug':
+  ensure   => $werkzeug_version,
+  provider => 'pip3',
 }
