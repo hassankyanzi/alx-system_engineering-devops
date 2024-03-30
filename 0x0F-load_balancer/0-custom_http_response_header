@@ -1,27 +1,28 @@
 #!/usr/bin/env bash
-# Configures Nginx with a custom HTTP response header
+# Configures Nginx with a custom HTTP response header on web-01 and web-02
 
-# Install Nginx
-apt-get update
-apt-get install -y nginx
-
-# Retrieve hostname
-hostname=$(hostname)
-
-# Configure Nginx
-cat <<EOF > /etc/nginx/sites-available/default
+# Function to configure Nginx with custom header
+configure_nginx() {
+    local hostname=$(hostname)
+    cat <<EOF > /etc/nginx/sites-available/default
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
     add_header X-Served-By $hostname;
-    root /var/www/html;
-    index index.html index.htm;
+    root   /var/www/html;
+    index  index.html index.htm;
 
     location / {
         try_files \$uri \$uri/ =404;
     }
 }
 EOF
+    systemctl restart nginx
+}
 
-# Restart Nginx
-systemctl restart nginx
+# Transfer Nginx configuration from web-01 to web-02
+scp ubuntu@web-01:/etc/nginx/sites-available/default /tmp/nginx_default
+ssh ubuntu@web-02 "sudo mv /tmp/nginx_default /etc/nginx/sites-available/default && sudo systemctl restart nginx"
+
+# Configure Nginx on web-02
+configure_nginx
