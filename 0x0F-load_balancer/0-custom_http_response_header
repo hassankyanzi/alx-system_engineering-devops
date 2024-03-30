@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 # Configures a new Ubuntu server with a custom HTTP header response
+
+# Update package repository and install Nginx
 apt-get update
 apt-get install -y nginx
 
+# Create HTML directory and files
 mkdir -p /var/www/html
 touch /var/www/html/index.html
 echo "Hello world" > /var/www/html/index.html
 touch /var/www/html/404.html
 echo "Ceci n'est pas une page" > /var/www/html/404.html
 
+# Configure Nginx with custom HTTP header
 printf %s "server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    add_header X-Served-By $HOSTNAME;
+    add_header X-Served-By \$HOSTNAME;  # <-- Modified line to add custom header
     root   /var/www/html;
     index  index.html index.htm;
     location /redirect_me {
@@ -25,4 +29,5 @@ printf %s "server {
     }
 }" > /etc/nginx/sites-available/default
 
+# Restart Nginx service to apply changes
 service nginx restart
