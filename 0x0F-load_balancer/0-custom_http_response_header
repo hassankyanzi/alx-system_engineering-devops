@@ -1,9 +1,27 @@
-#!/usr/bin/env bash                                               
-# Configure new server --> engine-x                               
-                                                                  
-sudo apt-get -y update                                            
-sudo apt-get -y install nginx                                     
-sudo ufw allow 'Nginx HTTP'                                       
-                                                                  
-sudo sed -i 's/http {/&\n\tadd_header X-Served-By $HOSTNAME;/' /etc/nginx/nginx.conf
-sudo service nginx restart
+#!/usr/bin/env bash
+# Configures Nginx with a custom HTTP response header
+
+# Install Nginx
+apt-get update
+apt-get install -y nginx
+
+# Retrieve hostname
+hostname=$(hostname)
+
+# Configure Nginx
+cat <<EOF > /etc/nginx/sites-available/default
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    add_header X-Served-By $hostname;
+    root /var/www/html;
+    index index.html index.htm;
+
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+}
+EOF
+
+# Restart Nginx
+systemctl restart nginx
