@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
-# Configures Nginx with a custom HTTP response header on web-01 and web-02
+# Customizing a 404-error_page
 
-# Function to configure Nginx with custom header
-configure_nginx() {
-    local hostname=$(hostname)
-    cat <<EOF > /etc/nginx/sites-available/default
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    add_header X-Served-By $hostname;
-    root   /var/www/html;
-    index  index.html index.htm;
+# Updating Packages before performing installations
+sudo apt-get update
+sudo apt-get install -y nginx
 
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
-}
-EOF
-    systemctl restart nginx
-}
+# Creating an index.html page
+echo "Hello World!" | sudo tee /var/www/html/index.html
 
-# Transfer Nginx configuration from web-01 to web-02
-scp ubuntu@web-01:/etc/nginx/sites-available/default /tmp/nginx_default
-ssh ubuntu@web-02 "sudo mv /tmp/nginx_default /etc/nginx/sites-available/default && sudo systemctl restart nginx"
+# Performing a "moved permanently redirection" (301)
+new_string="server_name _;\n\trewrite ^\/redirect_me https:\/\/github.com\/besthor permanent;"
+sudo sed -i "s/server_name _;/$new_string/" /etc/nginx/sites-enabled/default
 
-# Configure Nginx on web-02
-configure_nginx
+# Creating a 404 Custom error page
+echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
+new_string="listen 80 default_server;\n\terror_page 404 \/404.html;\n\tlocation = \/404.html {\n\t\troot \/var\/www\/html;\n\t\tinternal;\n\t}"
+
+sudo sed -i "s/listen 80 default_server;/$new_string/" /etc/nginx/sites-enabled/default
+
+# Creating an HTTP response header
+sudo sed -i "/server_name _/a add_header X-Served-By $HOSTNAME;" /etc/nginx/sites-enabled/default
+
+# Testing configurations for syntax errors
+sudo nginx -t
+
+# Restart nginx after implementing changes
+sudo service nginx restart
