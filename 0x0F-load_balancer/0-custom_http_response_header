@@ -1,32 +1,84 @@
 #!/usr/bin/env bash
-# Customizing a 404-error_page
+# duplicate web-01 to web-02
+# these scripts are an upgrade from the web-server scripts...
 
-# Updating Packages before performing installations
-sudo apt-get update
-sudo apt-get install -y nginx
+# uncomment to see the script run in action
+#set -x
 
-# Creating an index.html page
-echo "Hello World!" | sudo tee /var/www/html/index.html
+echo -e "Updating and doing some minor checks...\n"
 
-# Performing a "moved permanently redirection" (301)
-new_string="server_name _;\n\trewrite ^\/redirect_me https:\/\/github.com\/besthor permanent;"
-sudo sed -i "s/server_name _;/$new_string/" /etc/nginx/sites-enabled/default
+function install() {
+	command -v "$1" &> /dev/null
 
-# Creating a 404 Custom error page
-echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
-new_string="listen 80 default_server;\n\terror_page 404 \/404.html;\n\tlocation = \/404.html {\n\t\troot \/var\/www\/html;\n\t\tinternal;\n\t}"
+	#shellcheck disable=SC2181
+	if [ $? -ne 0 ]; then
+		echo -e "	Installing: $1$\n"
+		sudo apt-get update -y -qq && \
+			sudo apt-get install -y "$1" -qq
+		echo -e "\n"
+	else
+		echo -e "	${1} is already installed.\n"
+	fi
+}
 
-sudo sed -i "s/listen 80 default_server;/$new_string/" /etc/nginx/sites-enabled/default
+install nginx #install nginx
 
-# Define custom header value
-HOST_NAME=$(hostname)
-CUSTOM_HEADER="add_header X-Served-By $HOST_NAME;"
+echo -e "\nSetting up some minor stuff.\n"
 
-# Add custom header to Nginx configuration
-sed -i "/server_name _;/a \\\t$CUSTOM_HEADER" /etc/nginx/sites-available/default
+# allowing nginx on firewall
+sudo ufw allow 'Nginx HTTP'
 
-# Testing configurations for syntax errors
-sudo nginx -t
+# Give the user ownership to website files for easy editing
+if [ -d "/var/www" ]; then
+	sudo chown -R "$USER":"$USER" /var/www
+	sudo chmod -R 755 /var/www
+else
+	sudo mkdir -p /var/www
+	sudo chown -R "$USER":"$USER" /var/www
+	sudo chmod -R 755 /var/www
+fi
 
-# restart nginx after implementing changes
-sudo service nginx restart
+# create directories if not present
+for dir in /var/www/{html,error}; do
+	if ! [ -d "$dir" ]; then
+		mkdir -p "$dir"
+	fi
+done
+
+# creating new index
+echo "Hello World!" > /var/www/html/index.html
+
+# create new error page
+echo "Ceci n'est pas une page" > /var/www/html/error_404.html
+
+# backup default server config file
+sudo cp /etc/nginx/sites-enabled/default nginx-sites-enabled_default.backup
+
+server_config=\
+"server {
+		listen 80 default_server;
+		listen [::]:80 default_server;
+		root /var/www/html;
+		index index.html index.htm index.nginx-debian.html
+		server_name_;
+		add_header X-Served-By \$hostname;
+		location / {
+			try_files \$uri \$uri/ =404;
+		}
+		if (\$request_filename ~ redirect_me){
+			rewrite ^ https://th3-gr00t.tk/ permanent;
+		}
+		error_page 404 /error_404.html;
+		location = /error_404.html {
+			internal;
+		}
+}"
+
+#shellcheck disable=SC2154
+echo "$server_config" | sudo dd status=none of=/etc/nginx/sites-enabled/default
+
+if [ "$(pgrep -c nginx)" -le 0 ]; then
+	sudo service nginx start
+else
+	sudo service nginx restart
+fi
