@@ -1,31 +1,30 @@
 #!/usr/bin/env bash
-# configures a new Ubuntu machine
+# Customizing a 404-error_page
 
-# Install nginx on web-01 server
-apt-get -y update
-apt-get -y install nginx
+# Updating Packages before performing installations
+sudo apt-get update
+sudo apt-get install -y nginx
 
-# Add custom response header to know the server name for debugging
+# Creating an index.html page
+echo "Hello World!" | sudo tee /var/www/html/index.html
+
+# Performing a "moved permanently redirection" (301)
+new_string="server_name _;\n\trewrite ^\/redirect_me https:\/\/github.com\/hassankyanzi permanent;"
+sudo sed -i "s/server_name _;/$new_string/" /etc/nginx/sites-enabled/default
+
+# Creating a 404 Custom error page
+echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
+new_string="listen 80 default_server;\n\terror_page 404 \/404.html;\n\tlocation = \/404.html {\n\t\troot \/var\/www\/html;\n\t\tinternal;\n\t}"
+
+sudo sed -i "s/listen 80 default_server;/$new_string/" /etc/nginx/sites-enabled/default
+
+# Add custom response header to Nginx configuration
 HOST_NAME=$(hostname)
-HEADER="\\\n\tadd_header X-Served-By $HOST_NAME;\n"
-if ! grep -q "X-Served-By" /etc/nginx/sites-available/default; then
-    sed -i '/server_name _;/a '"$HEADER"'' /etc/nginx/sites-available/default
-fi
+CUSTOM_HEADER="add_header X-Served-By $HOST_NAME;"
+sudo sed -i "/server_name _;/a \\\t$CUSTOM_HEADER" /etc/nginx/sites-enabled/default
 
-# Create the first index.html page
-echo "Hello World!" > /var/www/html/index.html
+# Testing configurations for syntax errors
+sudo nginx -t
 
-# Add to the nginx configuration file a redirection to another page
-if ! grep -q "redirect_me" /etc/nginx/sites-available/default; then
-    REDIRECT_STRING="\\\n\tlocation /redirect_me {\n\t\t return 301 https://www.youtube.com/watch?v=3MbaGJN2ioQ;\n\t}\n"
-    sed -i '/location \/ {/a '"$REDIRECT_STRING"'' /etc/nginx/sites-available/default
-fi
-
-# Add to the nginx configuration file an error page 404
-if ! grep -q "error_page 404" /etc/nginx/sites-available/default; then
-    ERROR="\\\n\terror_page 404 /custom_404.html;\n"
-    echo "Ceci n'est pas une page" > /var/www/html/custom_404.html
-    sed -i '/location \/ {/a '"$ERROR"'' /etc/nginx/sites-available/default
-fi
-
-service nginx restart
+# restart nginx after implementing changes
+sudo service nginx restart
