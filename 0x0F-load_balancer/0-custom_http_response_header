@@ -1,30 +1,31 @@
 #!/usr/bin/env bash
+# Configure your Nginx server so that /redirect_me is redirecting to another page
 
-# Update Packages before performing installations
-sudo apt-get update
-sudo apt-get install -y nginx
+apt-get update
+apt-get install -y nginx
+sudo ufw allow 'Nginx Http'
+mkdir -p /var/www/html
+touch /var/www/html/index.html
+echo "Hello World!" > /var/www/html/index.html
+touch /var/www/html/404.html
+echo "Ceci n'est pas une page" > /var/www/html/404.html
 
-# Creating an index.html page
-echo "Hello World!" | sudo tee /var/www/html/index.html
+printf %s "server {
+     listen 80 default_server;
+     listen [::]:80 default_server;
+     add_header X-Served-By $HOSTNAME;
+     root /var/www/html;
+     index index.html index.htm;
+     
+     location /redirect_me {
+         return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
+     }
+     error_page 404 /404.html;
+     location /404 {
+         root /var/www/html;
+         internal;
+     }
+}
+" > /etc/nginx/sites-available/default
 
-# Perform a "moved permanently redirection" (301)
-sudo sed -i 's/server_name _;/&\n\trewrite ^\/redirect_me https:\/\/github.com\/besthor permanent;/' /etc/nginx/sites-enabled/default
-
-# Creating a 404 Custom error page
-echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
-new_string="listen 80 default_server;\n\terror_page 404 \/404.html;\n\tlocation = \/404.html {\n\t\troot \/var\/www\/html;\n\t\tinternal;\n\t}"
-
-sudo sed -i "s/listen 80 default_server;/$new_string/" /etc/nginx/sites-enabled/default
-
-# Creating an HTTP response header
-sudo sed -i "/server_name _;/a \\\tadd_header X-Served-By 68597-web-01;" /etc/nginx/sites-enabled/default
-
-# Print out the modified Nginx configuration file for verification
-echo "Modified Nginx configuration file:"
-cat /etc/nginx/sites-enabled/default
-
-# Testing configurations for syntax errors
-sudo nginx -t
-
-# Restart nginx after implementing changes
-sudo service nginx restart
+service nginx restart
