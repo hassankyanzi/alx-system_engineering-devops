@@ -1,30 +1,17 @@
-# Setup New Ubuntu server with nginx
-# and add a custom HTTP header
+#!/usr/bin/env bash
+#configures a new Ubuntu machine nginx
+apt-get update
+apt-get install software-properties-common -y
+add-apt-repository ppa:vbernat/haproxy-1.7 -y
+apt-get update
+apt-get install haproxy=1.7.\* -y
+echo "frontend web-front
+        bind *:80
+        default_backend web-backend
 
-exec { 'update system':
-        command => '/usr/bin/apt-get update',
-}
-
-package { 'nginx':
-	ensure => 'installed',
-	require => Exec['update system']
-}
-
-file {'/var/www/html/index.html':
-	content => 'Hello World!'
-}
-
-exec {'redirect_me':
-	command => 'sed -i "24i\	rewrite ^/redirect_me https://th3-gr00t.tk/ permanent;" /etc/nginx/sites-available/default',
-	provider => 'shell'
-}
-
-exec {'HTTP header':
-	command => 'sed -i "25i\	add_header X-Served-By \$hostname;" /etc/nginx/sites-available/default',
-	provider => 'shell'
-}
-
-service {'nginx':
-	ensure => running,
-	require => Package['nginx']
-}
+backend web-backend
+        balance roundrobin
+        server 68597-web-01 18.204.8.93 check
+        server 68597-web-02 54.167.152.52 check
+" | sudo tee -a /etc/haproxy/haproxy.cfg
+sudo service haproxy start

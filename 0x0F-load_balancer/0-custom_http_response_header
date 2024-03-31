@@ -1,79 +1,31 @@
 #!/usr/bin/env bash
-# duplicate web-01 to web-02
-# these scripts are an upgrade from the web-server scripts...
+# configures a new Ubuntu machine
 
-echo -e "Updating and doing some minor checks...\n"
+# Install nginx on web-01 server
+apt-get -y update
+apt-get -y install nginx
 
-function install() {
-    command -v "$1" &> /dev/null
-
-    if [ $? -ne 0 ]; then
-        echo -e "    Installing: $1\n"
-        sudo apt-get update -y -qq && \
-            sudo apt-get install -y "$1" -qq
-        echo -e "\n"
-    else
-        echo -e "    ${1} is already installed.\n"
-    fi
-}
-
-install nginx # Install nginx
-
-echo -e "\nSetting up some minor stuff.\n"
-
-# Allowing nginx on firewall
-sudo ufw allow 'Nginx HTTP'
-
-# Give the user ownership to website files for easy editing
-if [ -d "/var/www" ]; then
-    sudo chown -R "$USER":"$USER" /var/www
-    sudo chmod -R 755 /var/www
-else
-    sudo mkdir -p /var/www
-    sudo chown -R "$USER":"$USER" /var/www
-    sudo chmod -R 755 /var/www
+# Add custom response header to know the server name for debugging
+HOST_NAME=$(hostname)
+HEADER="\\\n\tadd_header X-Served-By $HOST_NAME;\n"
+if ! grep -q "X-Served-By" /etc/nginx/sites-available/default; then
+    sed -i '/server_name _;/a '"$HEADER"'' /etc/nginx/sites-available/default
 fi
 
-# Create directories if not present
-for dir in /var/www/{html,error}; do
-    if ! [ -d "$dir" ]; then
-        mkdir -p "$dir"
-    fi
-done
-
-# Create new index
+# Create the first index.html page
 echo "Hello World!" > /var/www/html/index.html
 
-# Create new error page
-echo "Ceci n'est pas une page" > /var/www/html/error_404.html
-
-# Backup default server config file
-sudo cp /etc/nginx/sites-enabled/default nginx-sites-enabled_default.backup
-
-server_config=\
-"server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    root /var/www/html;
-    index index.html index.htm index.nginx-debian.html;
-    server_name _;
-    add_header X-Served-By \$hostname;
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
-    if (\$request_filename ~ redirect_me){
-        rewrite ^ https://th3-gr00t.tk/ permanent;
-    }
-    error_page 404 /error_404.html;
-    location = /error_404.html {
-        internal;
-    }
-}"
-
-echo "$server_config" | sudo dd status=none of=/etc/nginx/sites-enabled/default
-
-if [ "$(pgrep -c nginx)" -le 0 ]; then
-    sudo service nginx start
-else
-    sudo service nginx restart
+# Add to the nginx configuration file a redirection to another page
+if ! grep -q "redirect_me" /etc/nginx/sites-available/default; then
+    REDIRECT_STRING="\\\n\tlocation /redirect_me {\n\t\t return 301 https://www.youtube.com/watch?v=3MbaGJN2ioQ;\n\t}\n"
+    sed -i '/location \/ {/a '"$REDIRECT_STRING"'' /etc/nginx/sites-available/default
 fi
+
+# Add to the nginx configuration file an error page 404
+if ! grep -q "error_page 404" /etc/nginx/sites-available/default; then
+    ERROR="\\\n\terror_page 404 /custom_404.html;\n"
+    echo "Ceci n'est pas une page" > /var/www/html/custom_404.html
+    sed -i '/location \/ {/a '"$ERROR"'' /etc/nginx/sites-available/default
+fi
+
+service nginx restart
