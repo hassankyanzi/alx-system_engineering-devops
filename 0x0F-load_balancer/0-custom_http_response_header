@@ -19,6 +19,10 @@ sudo sed -i "s/listen 80 default_server;/$new_string/" /etc/nginx/sites-enabled/
 # Creating an HTTP response header
 sudo sed -i "/server_name _;/a \\\tadd_header X-Served-By 68597-web-01;" /etc/nginx/sites-enabled/default
 
+# Print out the modified Nginx configuration file for verification
+echo "Modified Nginx configuration file:"
+cat /etc/nginx/sites-enabled/default
+
 # Testing configurations for syntax errors
 sudo nginx -t
 
