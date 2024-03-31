@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Customizing a 404-error_page
 
 # Updating Packages before performing installations
 sudo apt-get update
@@ -18,7 +17,7 @@ new_string="listen 80 default_server;\n\terror_page 404 \/404.html;\n\tlocation 
 
 sudo sed -i "s/listen 80 default_server;/$new_string/" /etc/nginx/sites-enabled/default
 
-# Add custom response header to Nginx configuration
+# Add custom response header to track the web server
 HOST_NAME=$(hostname)
 CUSTOM_HEADER="add_header X-Served-By $HOST_NAME;"
 sudo sed -i "/server_name _;/a \\\t$CUSTOM_HEADER" /etc/nginx/sites-enabled/default
@@ -26,5 +25,5 @@ sudo sed -i "/server_name _;/a \\\t$CUSTOM_HEADER" /etc/nginx/sites-enabled/defa
 # Testing configurations for syntax errors
 sudo nginx -t
 
-# restart nginx after implementing changes
+# Restart nginx after implementing changes
 sudo service nginx restart
