@@ -1,53 +1,18 @@
 #!/usr/bin/env bash
-# Install and configure HAProxy as a load balancer
+# Install your load balancer
+sudo apt-get -y update
+sudo apt-get -y install haproxy
 
-echo -e "Updating and doing some minor checks...\n"
-
-# Function to install a package if not already installed
-function install() {
-    if ! command -v "$1" &> /dev/null; then
-        echo -e "Installing: $1\n"
-        sudo apt-get update -qq && sudo apt-get install -y -qq "$1"
-        echo -e "\n"
-    else
-        echo -e "${1} is already installed.\n"
-    fi
-}
-
-# Install HAProxy
-install haproxy
-
-echo -e "\nSetting up some minor stuff.\n"
-
-# Backup the default HAProxy configuration file
-sudo cp /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.backup
-
-# Configure HAProxy
-sudo tee /etc/haproxy/haproxy.cfg > /dev/null <<EOF
-defaults
-    mode http
-    timeout client 15s
-    timeout connect 10s
-    timeout server 15s
-    timeout http-request 10s
-
-frontend clickviral-tech-frontend
+# Adjust HAProxy configuration
+echo "
+frontend estebanweb
     bind *:80
-    default_backend clickviral-tech-backend
-
-backend clickviral-tech-backend
+    mode http
+    default_backend app
+backend app
     balance roundrobin
     server 68597-web-01 18.204.8.93:80 check
-    server 68597-web-02 54.167.152.52:80 check
-EOF
+    server 68597-web-02 54.167.152.52:80 check" | sudo tee -a /etc/haproxy/haproxy.cfg > /dev/null
 
-# Enable HAProxy to be started by init script
-echo "ENABLED=1" | sudo tee /etc/default/haproxy > /dev/null
-
-# Restart HAProxy to apply changes
-if ! sudo systemctl restart haproxy; then
-    echo "Failed to restart HAProxy. Please check the configuration."
-    exit 1
-fi
-
-echo "HAProxy configured successfully - Roundrobin between web-01 & web-02"
+# Restart HAProxy service
+sudo service haproxy restart
