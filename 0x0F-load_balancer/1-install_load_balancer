@@ -5,7 +5,7 @@ sudo apt-get -y install haproxy
 
 # Adjust HAProxy configuration
 echo "
-frontend estebanweb
+frontend hassankyanziweb
     bind *:80
     mode http
     default_backend app
