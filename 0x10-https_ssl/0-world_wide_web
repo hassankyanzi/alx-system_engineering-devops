@@ -1,19 +1,44 @@
 #!/usr/bin/env bash
-# Shows information about subdomains.
 
+# Function to display subdomain information
 domain_information() {
     local domain="$1"
     local subdomain="$2"
-    local line
-    line=$(dig "$subdomain"."$domain" | awk '/ANSWER SECTION:/ {getline; print; getline; print}')
-    echo "$subdomain $line" | awk '{printf "The subdomain %s is a %s record and points to %s\n", $1, $2, $3}'
+
+    # Perform DNS lookup
+    local lookup_result=$(dig +short "$subdomain.$domain")
+
+    # Check if lookup_result is empty (subdomain doesn't exist)
+    if [ -z "$lookup_result" ]; then
+        echo "The subdomain $subdomain does not exist for domain $domain"
+    else
+        # Extract record type from lookup result
+        local record_type=$(echo "$lookup_result" | awk '{print toupper($1)}')
+
+        # Display information
+        echo "The subdomain $subdomain is a $record_type record and points to $lookup_result"
+    fi
 }
 
-if [ "$#" -eq 1 ]; then
-    domain_information "$1" "www"
-    domain_information "$1" "lb-01"
-    domain_information "$1" "web-01"
-    domain_information "$1" "web-02"
-elif [ "$#" -eq 2 ]; then
-    domain_information "$1" "$2"
-fi
+# Main function
+main() {
+    local domain="$1"
+    local subdomain="$2"
+
+    # If only domain provided, display default subdomains
+    if [ "$#" -eq 1 ]; then
+        domain_information "$domain" "www"
+        domain_information "$domain" "lb-01"
+        domain_information "$domain" "web-01"
+        domain_information "$domain" "web-02"
+    # If domain and subdomain provided, display information for the specified subdomain
+    elif [ "$#" -eq 2 ]; then
+        domain_information "$domain" "$subdomain"
+    else
+        echo "Usage: $0 <domain> [subdomain]"
+        exit 1
+    fi
+}
+
+# Execute main function with provided arguments
+main "$@"
