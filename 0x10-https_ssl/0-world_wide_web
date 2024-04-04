@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
-print_domain_subdomain () {
+print_domain_subdomain() {
     domain="$1"
     subdomain="$2"
     dig_output=$(dig "$subdomain.$domain" +short)
     if [ -z "$dig_output" ]; then
         echo "No record found for $subdomain.$domain"
     else
-        record_type=$(dig "$subdomain.$domain" | awk '/ANSWER SECTION/ {getline; print $4}')
-        destination=$(echo "$dig_output")
-        echo "The subdomain $subdomain is a $record_type record and points to $destination"
+        while read -r line; do
+            record_type=$(echo "$line" | awk '{print $4}')
+            destination=$(echo "$line" | awk '{print $5}')
+            echo "The subdomain $subdomain is a $record_type record and points to $destination"
+        done <<< "$(dig "$subdomain.$domain" | awk '/ANSWER SECTION/ {getline; print}')"
     fi
 }
 
@@ -17,10 +19,10 @@ if [ "$#" -eq 2 ]; then
     print_domain_subdomain "$1" "$2"
 elif [ "$#" -eq 1 ]; then
     domain="$1"
-    print_domain_subdomain "$domain" "www"
-    print_domain_subdomain "$domain" "lb-01"
-    print_domain_subdomain "$domain" "web-01"
-    print_domain_subdomain "$domain" "web-02"
+    subdomains=("www" "lb-01" "web-01" "web-02")
+    for subdomain in "${subdomains[@]}"; do
+        print_domain_subdomain "$domain" "$subdomain"
+    done
 else
     echo "Usage: $0 domain [subdomain]"
     exit 1
