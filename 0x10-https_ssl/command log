@@ -1,0 +1,8 @@
+sudo apt update
+sudo apt install snapd
+sudo apt-get remove certbot
+sudo apt-get install certbot
+sudo service haproxy stop   # Turn off haproxy which is probably using port 80
+sudo certbot certonly --standalone --preferred-challenges http --http-01-port 80 -d www.kyanzihassan.tech
+sudo ls /etc/letsencrypt/live/www.kyanzihassan.tech
+sudo mkdir -p /etc/haproxy/certs

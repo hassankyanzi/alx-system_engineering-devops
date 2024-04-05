@@ -1,30 +1,16 @@
 #!/usr/bin/env bash
-# script to report information about server domains
-# shellcheck disable=SC2086
-check_domain() {
-	# awk will use record seperator of space
-	# space sperated list of sub domains
-	SUBDOMAINS='www lb-01 web-01 web-02'
+# print domains and subdomains
 
-	if [ -z "$1" ]; then
-		exit
-	fi
-	# no sub domain specified, do all
-	if [ -z "$2" ]; then
-		echo "$SUBDOMAINS" | awk -v domain="$1"\
-		'BEGIN { RS=" " }
-		{split($0,ARR," ");
-		cmd = "dig " ARR[1]"."domain " | grep -A1 \"ANSWER SECTION:\" | tail -n1";
-		system(cmd)
-		close(cmd)}' | awk\
-		'{
-		split($0, DOMS, ".");
-		print "The subdomain " DOMS[1] " is a " $4 " record and points to " $5}'
-	else
-		dig "$2.$1" | grep -A1 "ANSWER SECTION:" | tail -n1 | awk\
-		'{
-		split($0, DOMS, ".");
-		print "The subdomain " DOMS[1] " is a " $4 " record and points to " $5}'
-	fi
+print_domain_subdomain () {
+    dig "$1" | grep -A1 'ANSWER SECTION:' | sed -r "s/$1./$2/g" | awk -F" " ' NR==2 { print "The subdomain " $1 " is a " $4 " record and points to " $5 }'
 }
-check_domain "$1" "$2"
+
+if [ "$#" -eq 2 ]
+then
+    print_domain_subdomain "$2.$1" "$2"
+else
+    print_domain_subdomain "www.$1" "www"
+    print_domain_subdomain "lb-01.$1" "lb-01"
+    print_domain_subdomain "web-01.$1" "web-01"
+    print_domain_subdomain "web-02.$1" "web-02"
+fi
