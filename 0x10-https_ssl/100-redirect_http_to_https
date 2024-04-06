@@ -2,21 +2,11 @@ global
     log /dev/log    local0
     log /dev/log    local1 notice
     chroot /var/lib/haproxy
-    stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+    stats socket /run/haproxy/admin.sock mode 660 level admin
     stats timeout 30s
     user haproxy
     group haproxy
     daemon
-
-    # Default SSL material locations
-    ca-base /etc/ssl/certs
-    crt-base /etc/ssl/private
-
-    # SSL default configuration
-    ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
-    ssl-default-bind-options no-sslv3 no-tlsv10 no-tlsv11
-    ssl-default-server-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
-    ssl-default-server-options no-sslv3 no-tlsv10 no-tlsv11
 
 defaults
     log     global
@@ -26,21 +16,13 @@ defaults
     timeout connect 5000
     timeout client  50000
     timeout server  50000
-    errorfile 400 /etc/haproxy/errors/400.http
-    errorfile 403 /etc/haproxy/errors/403.http
-    errorfile 408 /etc/haproxy/errors/408.http
-    errorfile 500 /etc/haproxy/errors/500.http
-    errorfile 502 /etc/haproxy/errors/502.http
-    errorfile 503 /etc/haproxy/errors/503.http
-    errorfile 504 /etc/haproxy/errors/504.http
 
-frontend kyanzihassan-tech-frontend-https
+frontend http_front
+    bind *:80
     bind *:443 ssl crt /etc/letsencrypt/live/www.kyanzihassan.tech/fullchain.pem
-    mode http
-    default_backend www-backend
-
-
-backend kyanzihassan-tech
-        balance roundrobin
-        server 68597-web-01 18.204.8.93:80 check
-        server 68597-web-02 54.167.152.52:80 check
+    reqadd X-Forwarded-Proto:\ https
+    
+backend http_back
+    balance roundrobin
+    server server1 18.204.8.93:80 check
+    server server2 54.167.152.52:80 check
