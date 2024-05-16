@@ -1,33 +1,41 @@
 server {
-                listen 80 default_server;
-location /hbnb_static { alias /data/web_static/current/;}
-                listen [::]:80 default_server;
-                root /var/www/html;
-                index index.html index.htm index.nginx-debian.html
-                server_name_;
-                add_header X-Served-By $hostname;
-                location /static/ {
-                        # rewrite ^(/static/[^?]*)\?.*$ $1 last;
-                        alias /home/ubuntu/AirBnB_clone_v4/web_dynamic/static/;
-                        try_files $uri $uri/ =404;
-                }
-                location / {
-                        try_files $uri $uri/ =404;
-                }
-                location /airbnb-onepage {
-                        proxy_pass http://0.0.0.0:5000/airbnb-onepage;
-                }
-                location ~ ^/airbnb-dynamic/number_odd_or_even/([0-9]+)$ {
-                        proxy_pass http://0.0.0.0:5001/number_odd_or_even/$1;
-                }
-                location /api/ {
-                        proxy_pass http://0.0.0.0:5002;
-                }
-                if ($request_filename ~ redirect_me){
-                        rewrite ^ https://th3-gr00t.tk/ permanent;
-                }
-                error_page 404 /error_404.html;
-                location = /error_404.html {
-                        internal;
-                }
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    # Use IP of server as domain name
+    server_name 18.204.8.93;
+
+    # Customize HTTP response header
+    add_header X-Served-By 68597-web-01;
+
+    # Serve /airbnb_onepage/ route on AirBnB_clone_v3
+    location = /airbnb-onepage/ {
+        proxy_pass http://127.0.0.1:5000/airbnb-onepage/;
+
+
+    # Serve /number_odd_or_even /route on AirBnb_clone-v2
+    location = /airbnb-dynamic/number_odd_or_even/(\d+)$ {
+        proxy_pass http://127.0.0.1:5001/number_odd_or_even/$1;
+    }
+
+    # Serve AirBnB_clone_v3 API
+    location /api {
+        proxy_pass http://127.0.0.1:5002/api;
+    }
+
+    # Configure /2-hbnb route of AirBnB_clone_v4 as root location
+    location / {
+        proxy_pass http://127.0.0.1:5003/2-hbnb;
+    }
+
+    # Serve static content for AirBnB_clone_v4
+    location /static {
+        alias web_dynamic/static/;
+    }
+
+     error_page 404 /custom_404.html;
+     location /404 {
+        root /var/www/html;
+        internal;
+    }
 }
